@@ -5,7 +5,8 @@
   "dependencies": {
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
-    "react-scripts": "3.0.1"
+    "react-scripts": "3.0.1",
+    "veritone-activate": "https://github.com/veritone/activate.git#1520952118e1253f7957bd300f636d6c9bec383d"
   },
   "scripts": {
     "start": "react-scripts start",
