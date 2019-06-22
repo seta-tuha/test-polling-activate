@@ -1,5 +1,6 @@
 import React from 'react';
 import VeritoneActivate, { API_EVENTS, WS_EVENTS } from 'veritone-activate';
+import AudioAnalyser from './AudioAnalyser';
 
 const config = {
   authToken:
@@ -34,6 +35,8 @@ const additionalEngines = [{
 
 const FACE_EVENT = 'face';
 const TRANSCRIPT_EVENT = 'audio-recognition';
+const TRANSCRIPT_EVENT_UPLOAD = 'audio-recognition-upload';
+const TRANSCRIPT_EVENT_RECORD = 'audio-recognition-record';
 
 const veritoneActivate = new VeritoneActivate(config);
 
@@ -44,7 +47,9 @@ class App extends React.Component {
     face: {
       tdoId: null,
       jobId: null,
-    }
+    },
+    audio: null,
+    audioUrl: ''
   }
 
   componentDidMount() {
@@ -72,7 +77,7 @@ class App extends React.Component {
           FACE_ENGINE_ID
         );
         veritoneActivate.on(FACE_EVENT, (msg) => {
-          console.log(msg);
+          console.log('from event face', msg);
         })
       }
     });
@@ -89,21 +94,67 @@ class App extends React.Component {
     veritoneActivate.launchJob(blob, additionalEngines)
       .then(({ tdoId, jobId }) => {
         veritoneActivate.startPolling(
-          TRANSCRIPT_EVENT,
+          TRANSCRIPT_EVENT_UPLOAD,
           tdoId,
           jobId,
           SEPARATE_TRANSCRIPTION_ENGINE_ID
         );
       })
     veritoneActivate.on(
-      TRANSCRIPT_EVENT,
-      (message) => console.log('from event', message)
+      TRANSCRIPT_EVENT_UPLOAD,
+      (message) => console.log('from event transcript uploading', message)
+    );
+  }
+
+  getMicrophone = async () => {
+    const audio = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: false
+    });
+    this.setState({ audio });
+  }
+
+  stopMicrophone = () => {
+    this.state.audio.getTracks().forEach(track => track.stop());
+    this.setState({ audio: null });
+  }
+
+  onRecorded = (blob) => {
+    this.setState({
+      audioUrl: URL.createObjectURL(blob)
+    })
+    veritoneActivate.launchJob(blob, additionalEngines)
+      .then(({ tdoId, jobId }) => {
+        veritoneActivate.startPolling(
+          TRANSCRIPT_EVENT_RECORD,
+          tdoId,
+          jobId,
+          SEPARATE_TRANSCRIPTION_ENGINE_ID
+        );
+      })
+    veritoneActivate.on(
+      TRANSCRIPT_EVENT_RECORD,
+      (message) => console.log('from event transcript recording', message)
     );
   }
 
   render() {
+    const { audio, audioUrl } = this.state;
     return (
       <div className="App">
+        {
+          audio ? (
+            <button onClick={this.stopMicrophone}>stop microphone</button>
+          ) : (
+              <button onClick={this.getMicrophone}>click to record</button>
+            )
+        }
+        <div style={{ width: 70, height: 70, borderRadius: '50%', background: 'lightgrey' }} >
+          {
+            audio && <AudioAnalyser audio={audio} onRecorded={this.onRecorded} />
+          }
+        </div>
+        <audio controls src={audioUrl}></audio>
         <input type="file" onChange={this.onInputFile} />
         {
           this.state.ready && <div>We are recording for face recognition. Upload video to get audio recognition data</div>
