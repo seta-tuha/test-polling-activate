@@ -90,8 +90,7 @@ class App extends React.Component {
   onInputFile = (event) => {
     console.log(event);
     const file = event.target.files[0]
-    const blob = new Blob([file], { type: file.type });
-    veritoneActivate.launchJob(blob, additionalEngines)
+    veritoneActivate.launchJob(file, additionalEngines)
       .then(({ tdoId, jobId }) => {
         veritoneActivate.startPolling(
           TRANSCRIPT_EVENT_UPLOAD,
@@ -123,7 +122,11 @@ class App extends React.Component {
     this.setState({
       audioUrl: URL.createObjectURL(blob)
     })
-    veritoneActivate.launchJob(blob, additionalEngines)
+    const audioFileName = 'activate-' + new Date().toISOString() + '.webm';
+    const file = new File([blob], audioFileName, {
+      type: "audio/webm",
+    });
+    veritoneActivate.launchJob(file, additionalEngines)
       .then(({ tdoId, jobId }) => {
         veritoneActivate.startPolling(
           TRANSCRIPT_EVENT_RECORD,
